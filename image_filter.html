@@ -11,6 +11,10 @@
   <div class="inputoutput">
     <img id="imageSrc" alt="No Image" />
     <div class="caption">imageSrc <input type="file" id="fileInput" name="file" /></div>
+    <p>Lower</p>
+    <input type="range" id="trackbar_lower" value="50" min="0" max="180" step="1" onchange ="updateLowerBound(value)">
+    <p>Upper</p>
+    <input type="range" id="trackbar_upper" value="50" min="0" max="180" step="1" onchange ="updateUpperBound(value)">
   </div>
   <div class="inputoutput">
     <canvas id="canvasOutput" ></canvas>
@@ -28,33 +32,87 @@ imgElement.onload = function() {
 
 
 
-let src = cv.imread(imgElement);
-let dst = new cv.Mat();
-let low = new cv.Mat(src.rows, src.cols, src.type(), [0, 0, 0, 0]);
-let high = new cv.Mat(src.rows, src.cols, src.type(), [150, 150, 150, 255]);
-// You can try more different parameters
-cv.inRange(src, low, high, dst);
-cv.imshow('canvasOutput', dst);
-src.delete(); dst.delete(); low.delete(); high.delete();
+// let src = cv.imread(imgElement);
+// let dst = new cv.Mat();
+// let low = new cv.Mat(src.rows, src.cols, src.type(), [0, 0, 0, 0]);
+// let high = new cv.Mat(src.rows, src.cols, src.type(), [150, 150, 150, 255]);
+// // You can try more different parameters
+// cv.inRange(src, low, high, dst);
+// cv.imshow('canvasOutput', dst);
+// src.delete(); dst.delete(); low.delete(); high.delete();
 
 
 
 // ==========================================
 
-	// let dst = new cv.Mat(mat);
+	let mat = cv.imread(imgElement);
+	let dst = new cv.Mat(mat);
 	// // cv.addWeighted( src1, alpha, src2, beta, 0.0, dst, -1);
-	// cv.cvtColor(mat, dst, cv.COLOR_BGR2HSV);   // COLOR_BGR2GRAY
+	cv.cvtColor(mat, dst, cv.COLOR_BGR2HSV);   // COLOR_BGR2GRAY
 
-	// let src = dst;
-	// if (src.isContinuous()) {
+	let src = dst;
+	if (src.isContinuous()) {
 	// // console.log(src.cols);
-	// 	for (var row = 0; row < src.rows; row++) {
-	// 		for (var col = 0; col < src.cols; col++) {
-	// 		    let H = src.data[row * src.cols * src.channels() + col * src.channels()];
-	// 		    let S = src.data[row * src.cols * src.channels() + col * src.channels() + 1];
+		for (var row = 0; row < src.rows; row++) {
+			for (var col = 0; col < src.cols; col++) {
+			    let H = src.data[row * src.cols * src.channels() + col * src.channels()];
+			    let S = src.data[row * src.cols * src.channels() + col * src.channels() + 1];
 	// 		    let V = src.data[row * src.cols * src.channels() + col * src.channels() + 2];
 	// 		    let A = src.data[row * src.cols * src.channels() + col * src.channels() + 3];
 
+
+	            if (!(((H>0)&&(H<8)) || (H>160)&&(H<180) || (S > 80)))  
+	            {  
+				    src.data[row * src.cols * src.channels() + col * src.channels()] = 0;
+				    src.data[row * src.cols * src.channels() + col * src.channels() + 1] = 0;
+				    src.data[row * src.cols * src.channels() + col * src.channels() + 2] = 0;
+
+	            }  
+
+	// 		    // src.data[row * src.cols * src.channels() + col * src.channels()] = 42;
+	// 		    // src.data[row * src.cols * src.channels() + col * src.channels() + 1] = 42;
+	// 		    // src.data[row * src.cols * src.channels() + col * src.channels() + 2] = 42;
+	// 		    // src.data[row * src.cols * src.channels() + col * src.channels() + 3] = 42;
+	// 		    // console.log(H + " " + S + " " + V + " " + A);
+			}
+		}
+	}
+
+	cv.cvtColor(dst, dst, cv.COLOR_HSV2BGR);
+  	cv.imshow('canvasOutput', dst);
+
+  	mat.delete();
+  	dst.delete();
+
+
+};
+
+let lowerH = 0;
+let upperH = 180;
+
+function updateLowerBound (value) {
+	lowerH = value;
+	filterImageColor();
+}
+
+function updateUpperBound (value) {
+	upperH = value;
+	filterImageColor();
+}
+
+function filterImageColor () {
+	let mat = cv.imread(imgElement);
+	let dst = new cv.Mat(mat);
+	// // cv.addWeighted( src1, alpha, src2, beta, 0.0, dst, -1);
+	cv.cvtColor(mat, dst, cv.COLOR_BGR2HSV);   // COLOR_BGR2GRAY
+
+	let src = dst;
+	if (src.isContinuous()) {
+	// // console.log(src.cols);
+		for (var row = 0; row < src.rows; row++) {
+			for (var col = 0; col < src.cols; col++) {
+			    let H = src.data[row * src.cols * src.channels() + col * src.channels()];
+			    let S = src.data[row * src.cols * src.channels() + col * src.channels() + 1];
 
 	//             if (!(((H>0)&&(H<8)) || (H>160)&&(H<180) || (S > 80)))  
 	//             {  
@@ -64,23 +122,32 @@ src.delete(); dst.delete(); low.delete(); high.delete();
 
 	//             }  
 
-	// 		    // src.data[row * src.cols * src.channels() + col * src.channels()] = 42;
-	// 		    // src.data[row * src.cols * src.channels() + col * src.channels() + 1] = 42;
-	// 		    // src.data[row * src.cols * src.channels() + col * src.channels() + 2] = 42;
-	// 		    // src.data[row * src.cols * src.channels() + col * src.channels() + 3] = 42;
-	// 		    // console.log(H + " " + S + " " + V + " " + A);
-	// 		}
-	// 	}
-	// }
+				if (lowerH <= upperH) {
+					if (!(H >= lowerH && H <= upperH)) {
+				    src.data[row * src.cols * src.channels() + col * src.channels()] = 0;
+				    src.data[row * src.cols * src.channels() + col * src.channels() + 1] = 0;
+				    src.data[row * src.cols * src.channels() + col * src.channels() + 2] = 0;
+					}
+				} else {
+					if (!((H>=0)&&(H<=upperH)) || ((H>=lowerH)&&(H<=180))) {
+				    src.data[row * src.cols * src.channels() + col * src.channels()] = 0;
+				    src.data[row * src.cols * src.channels() + col * src.channels() + 1] = 0;
+				    src.data[row * src.cols * src.channels() + col * src.channels() + 2] = 0;
+					}
+				}
 
-	// cv.cvtColor(dst, dst, cv.COLOR_HSV2BGR);
- //  	cv.imshow('canvasOutput', dst);
+			}
+		}
+	}
 
- //  	mat.delete();
+	cv.cvtColor(src, dst, cv.COLOR_HSV2BGR);
+  	cv.imshow('canvasOutput', dst);
 
+  	mat.delete();
+  	dst.delete();
 
+}
 
-};
 function onOpenCvReady() {
   document.getElementById('status').innerHTML = 'OpenCV.js is ready.';
 }
